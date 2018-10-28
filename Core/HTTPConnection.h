@@ -86,11 +86,12 @@
 - (NSDictionary *)parseGetParams;
 
 - (NSString *)requestURI;
+- (HTTPMessage *)request;
 
 - (NSArray *)directoryIndexFileNames;
 - (NSString *)filePathForURI:(NSString *)path;
 - (NSString *)filePathForURI:(NSString *)path allowDirectory:(BOOL)allowDirectory;
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path;
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^) (NSObject<HTTPResponse> *response))handler;
 - (WebSocket *)webSocketForURI:(NSString *)path;
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength;

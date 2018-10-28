@@ -610,21 +610,28 @@ static NSMutableArray *recentNonces;
 		
 		if ([certificates count] > 0)
 		{
-			// All connections are assumed to be secure. Only secure connections are allowed on this server.
-			NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:3];
-			
-			// Configure this connection as the server
-			[settings setObject:[NSNumber numberWithBool:YES]
-						 forKey:(NSString *)kCFStreamSSLIsServer];
-			
-			[settings setObject:certificates
-						 forKey:(NSString *)kCFStreamSSLCertificates];
-			
-			// Configure this connection to use the highest possible SSL level
-			[settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
-						 forKey:(NSString *)kCFStreamSSLLevel];
-			
-			[asyncSocket startTLS:settings];
+            // All connections are assumed to be secure. Only secure connections are allowed on this server.
+            NSMutableDictionary *settings = [NSMutableDictionary dictionaryWithCapacity:2];
+
+            // Configure this connection as the server
+            [settings setObject:[NSNumber numberWithBool:YES]
+                         forKey:(NSString *)kCFStreamSSLIsServer];
+
+            [settings setObject:certificates
+                         forKey:(NSString *)kCFStreamSSLCertificates];
+
+            // Configure this connection to use the highest possible SSL level
+            /*
+            [settings setObject:(NSString *)kCFStreamSocketSecurityLevelNegotiatedSSL
+                         forKey:(NSString *)kCFStreamSSLLevel];
+            [settings setObject:[NSNumber numberWithInteger:2]
+                         forKey:GCDAsyncSocketSSLProtocolVersionMin];
+            [settings setObject:[NSNumber numberWithInteger:2]
+                         forKey:GCDAsyncSocketSSLProtocolVersionMax];
+             */
+            //[settings setObject:@"github.com" forKey:(NSString *)kCFStreamSSLPeerName];
+
+            [asyncSocket startTLS:settings];
 		}
 	}
 	
@@ -885,6 +892,11 @@ static NSMutableArray *recentNonces;
 	return [[request url] relativeString];
 }
 
+- (HTTPMessage *)request
+{
+    return request;
+}
+
 /**
  * This method is called after a full HTTP request has been received.
  * The current request is in the HTTPMessage request variable.
@@ -988,16 +1000,18 @@ static NSMutableArray *recentNonces;
 	
 	// Note: We already checked to ensure the method was supported in onSocket:didReadData:withTag:
 	
-	// Respond properly to HTTP 'GET' and 'HEAD' commands
-	httpResponse = [self httpResponseForMethod:method URI:uri];
-	
-	if (httpResponse == nil)
-	{
-		[self handleResourceNotFound];
-		return;
-	}
-	
-	[self sendResponseHeadersAndBody];
+    // Respond properly to HTTP 'GET' and 'HEAD' commands
+    [self httpResponseForMethod:method uri:uri responseHandler:^(NSObject<HTTPResponse> *response) {
+        httpResponse = response;
+        if (httpResponse == nil)
+        {
+            [self handleResourceNotFound];
+        }
+        else
+        {
+            [self sendResponseHeadersAndBody];
+        }
+    }];
 }
 
 /**
@@ -1661,7 +1675,7 @@ static NSMutableArray *recentNonces;
  * HTTPFileResponse is a wrapper for an NSFileHandle object, and is the preferred way to send a file response.
  * HTTPDataResponse is a wrapper for an NSData object, and may be used to send a custom response.
 **/
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^) (NSObject<HTTPResponse> *response))handler
 {
 	HTTPLogTrace();
 	
@@ -1671,17 +1685,18 @@ static NSMutableArray *recentNonces;
 	
 	BOOL isDir = NO;
 	
-	if (filePath && [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir] && !isDir)
-	{
-		return [[HTTPFileResponse alloc] initWithFilePath:filePath forConnection:self];
-	
-		// Use me instead for asynchronous file IO.
-		// Generally better for larger files.
-		
-	//	return [[[HTTPAsyncFileResponse alloc] initWithFilePath:filePath forConnection:self] autorelease];
-	}
-	
-	return nil;
+    if (filePath && [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDir] && !isDir)
+    {
+        handler([[HTTPFileResponse alloc] initWithFilePath:filePath forConnection:self]);
+        
+        // Use me instead for asynchronous file IO.
+        // Generally better for larger files.
+        // handler([[[HTTPAsyncFileResponse alloc] initWithFilePath:filePath forConnection:self] autorelease]);
+    }
+    else
+    {
+        handler(nil);
+    }
 }
 
 - (WebSocket *)webSocketForURI:(NSString *)path
