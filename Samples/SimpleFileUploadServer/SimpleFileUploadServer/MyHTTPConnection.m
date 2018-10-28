@@ -84,7 +84,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_VERBOSE; // | HTTP_LOG_FLAG_TRACE
 	return [super expectsRequestBodyFromMethod:method atPath:path];
 }
 
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^)(NSObject<HTTPResponse> *))handler
 {
 	HTTPLogTrace();
 	
@@ -101,14 +101,16 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_VERBOSE; // | HTTP_LOG_FLAG_TRACE
 		NSString* templatePath = [[config documentRoot] stringByAppendingPathComponent:@"upload.html"];
 		NSDictionary* replacementDict = [NSDictionary dictionaryWithObject:filesStr forKey:@"MyFiles"];
 		// use dynamic file response to apply our links to response template
-		return [[HTTPDynamicFileResponse alloc] initWithFilePath:templatePath forConnection:self separator:@"%" replacementDictionary:replacementDict];
+		handler([[HTTPDynamicFileResponse alloc] initWithFilePath:templatePath forConnection:self separator:@"%" replacementDictionary:replacementDict]);
+		return;
 	}
 	if( [method isEqualToString:@"GET"] && [path hasPrefix:@"/upload/"] ) {
 		// let download the uploaded files
-		return [[HTTPFileResponse alloc] initWithFilePath: [[config documentRoot] stringByAppendingString:path] forConnection:self];
+		handler([[HTTPFileResponse alloc] initWithFilePath: [[config documentRoot] stringByAppendingString:path] forConnection:self]);
+		return;
 	}
 	
-	return [super httpResponseForMethod:method URI:path];
+	[super httpResponseForMethod:method uri:path responseHandler:handler];
 }
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength

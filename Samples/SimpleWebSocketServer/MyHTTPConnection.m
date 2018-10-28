@@ -13,7 +13,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 
 @implementation MyHTTPConnection
 
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^)(NSObject<HTTPResponse> *))handler
 {
 	HTTPLogTrace();
 	
@@ -43,13 +43,15 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		
 		NSDictionary *replacementDict = [NSDictionary dictionaryWithObject:wsLocation forKey:@"WEBSOCKET_URL"];
 		
-		return [[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
-		                                            forConnection:self
-		                                                separator:@"%%"
-		                                    replacementDictionary:replacementDict];
+        handler([[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
+                                                    forConnection:self
+                                                        separator:@"%%"
+                                            replacementDictionary:replacementDict]);
 	}
-	
-	return [super httpResponseForMethod:method URI:path];
+	else
+    {
+        [super httpResponseForMethod:method uri:path responseHandler:handler];
+    }
 }
 
 - (WebSocket *)webSocketForURI:(NSString *)path
