@@ -2,7 +2,12 @@
 
 #import <pthread.h>
 #import <objc/runtime.h>
-#import <mach/mach_host.h>
+
+#if TARGET_OS_TV
+#else
+    #import <mach/mach_host.h>
+#endif
+
 #import <mach/host_info.h>
 #import <libkern/OSAtomic.h>
 
@@ -132,9 +137,13 @@ static unsigned int numProcessors;
 		
 		host_basic_info_data_t hostInfo;
 		mach_msg_type_number_t infoCount;
-		
-		infoCount = HOST_BASIC_INFO_COUNT;
-		host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&hostInfo, &infoCount);
+    
+        infoCount = HOST_BASIC_INFO_COUNT;
+        
+    #if TARGET_OS_TV
+    #else
+        host_info(mach_host_self(), HOST_BASIC_INFO, (host_info_t)&hostInfo, &infoCount);
+    #endif
 		
 		unsigned int result = (unsigned int)(hostInfo.max_cpus);
 		unsigned int one    = (unsigned int)(1);
