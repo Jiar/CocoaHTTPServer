@@ -11,6 +11,7 @@
 
 #define HTTPVersion1_0  ((NSString *)kCFHTTPVersion1_0)
 #define HTTPVersion1_1  ((NSString *)kCFHTTPVersion1_1)
+#define HTTPVersion2_0  ((NSString *)kCFHTTPVersion2_0)
 
 
 @interface HTTPMessage : NSObject
