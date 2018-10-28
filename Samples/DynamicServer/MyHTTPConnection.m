@@ -10,7 +10,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 
 @implementation MyHTTPConnection
 
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^)(NSObject<HTTPResponse> *))handler
 {
 	// Use HTTPConnection's filePathForURI method.
 	// This method takes the given path (which comes directly from the HTTP request),
@@ -29,7 +29,8 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	{
 		// Uh oh.
 		// HTTPConnection's filePathForURI was supposed to take care of this for us.
-		return nil;
+        handler(nil);
+        return;
 	}
 	
 	NSString *relativePath = [filePath substringFromIndex:[documentRoot length]];
@@ -69,19 +70,21 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 		
 		HTTPLogVerbose(@"%@[%p]: replacementDict = \n%@", THIS_FILE, self, replacementDict);
 		
-		return [[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
-		                                            forConnection:self
-		                                                separator:@"%%"
-		                                    replacementDictionary:replacementDict];
+        handler([[HTTPDynamicFileResponse alloc] initWithFilePath:[self filePathForURI:path]
+                                                    forConnection:self
+                                                        separator:@"%%"
+                                            replacementDictionary:replacementDict]);
+        return;
 	}
 	else if ([relativePath isEqualToString:@"/unittest.html"])
 	{
 		HTTPLogVerbose(@"%@[%p]: Serving up HTTPResponseTest (unit testing)", THIS_FILE, self);
 		
-		return [[HTTPResponseTest alloc] initWithConnection:self];
+        handler([[HTTPResponseTest alloc] initWithConnection:self]);
+        return;
 	}
 	
-	return [super httpResponseForMethod:method URI:path];
+    [super httpResponseForMethod:method uri:path responseHandler:handler];
 }
 
 @end

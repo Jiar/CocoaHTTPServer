@@ -46,7 +46,7 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 	return [super expectsRequestBodyFromMethod:method atPath:path];
 }
 
-- (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString *)method URI:(NSString *)path
+- (void)httpResponseForMethod:(NSString *)method uri:(NSString *)path responseHandler:(void (^)(NSObject<HTTPResponse> *))handler
 {
 	HTTPLogTrace();
 	
@@ -78,10 +78,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 			response = [@"<html><body>Sorry - Try Again<body></html>" dataUsingEncoding:NSUTF8StringEncoding];
 		}
 		
-		return [[HTTPDataResponse alloc] initWithData:response];
+        handler([[HTTPDataResponse alloc] initWithData:response]);
 	}
-	
-	return [super httpResponseForMethod:method URI:path];
+    else
+    {
+        [super httpResponseForMethod:method uri:path responseHandler:handler];
+    }
 }
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength
